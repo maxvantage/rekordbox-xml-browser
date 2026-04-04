@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+rekordbox.xml
+.env
+*.log
+.DS_Store
