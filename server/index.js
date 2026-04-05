@@ -77,6 +77,7 @@ function loadData() {
 
   const tracksById = new Map();
   const tracks = rawTracks.map(t => {
+    const cues = parseCues(t);
     const track = {
       id: String(t.TrackID),
       name: t.Name || '',
@@ -105,7 +106,8 @@ function loadData() {
       mix: t.Mix || '',
       key: t.Tonality || '',
       isSpotify: t.Kind === 'Unknown Format',
-      cues: parseCues(t),
+      cues,
+      cueCount: cues.length,
     };
     tracksById.set(track.id, track);
     return track;

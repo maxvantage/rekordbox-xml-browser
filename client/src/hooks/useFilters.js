@@ -1,15 +1,40 @@
 import { useState, useMemo } from 'react';
 
+// Camelot harmonic mixing: same key, relative (same num other letter), ±1 number same letter
+export function getHarmonicKeys(rootKey, includeHarmonics) {
+  if (!rootKey) return new Set();
+  const match = rootKey.match(/^(\d+)([AB])$/);
+  if (!match) return new Set([rootKey]);
+  if (!includeHarmonics) return new Set([rootKey]);
+  const num = parseInt(match[1]);
+  const letter = match[2];
+  const other = letter === 'A' ? 'B' : 'A';
+  const prev = num === 1 ? 12 : num - 1;
+  const next = num === 12 ? 1 : num + 1;
+  return new Set([
+    `${num}${letter}`,   // exact match
+    `${num}${other}`,    // relative major/minor
+    `${prev}${letter}`,  // energy drop
+    `${next}${letter}`,  // energy boost
+  ]);
+}
+
 export function useFilters(tracks) {
-  const [search, setSearch]             = useState('');
-  const [bpmMin, setBpmMin]             = useState('');
-  const [bpmMax, setBpmMax]             = useState('');
-  const [selectedKeys, setSelectedKeys] = useState(new Set());
+  const [search, setSearch]         = useState('');
+  const [bpmMin, setBpmMin]         = useState('');
+  const [bpmMax, setBpmMax]         = useState('');
+  const [keyRoot, setKeyRoot]       = useState(null);   // e.g. "8A" or null
+  const [keyHarmonics, setKeyHarmonics] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState(new Set());
-  const [minRating, setMinRating]       = useState(0);
-  const [playlistTrackIds, setPlaylistTrackIds] = useState(null); // null = all
-  const [sortCol, setSortCol]           = useState('artist');
-  const [sortDir, setSortDir]           = useState('asc');
+  const [minRating, setMinRating]   = useState(0);
+  const [playlistTrackIds, setPlaylistTrackIds] = useState(null);
+  const [sortCol, setSortCol]       = useState('artist');
+  const [sortDir, setSortDir]       = useState('asc');
+
+  const activeKeys = useMemo(
+    () => getHarmonicKeys(keyRoot, keyHarmonics),
+    [keyRoot, keyHarmonics]
+  );
 
   const filtered = useMemo(() => {
     let result = tracks;
@@ -37,8 +62,8 @@ export function useFilters(tracks) {
     if (!isNaN(bMin)) result = result.filter(t => t.bpm !== null && t.bpm >= bMin);
     if (!isNaN(bMax)) result = result.filter(t => t.bpm !== null && t.bpm <= bMax);
 
-    if (selectedKeys.size > 0) {
-      result = result.filter(t => selectedKeys.has(t.key));
+    if (activeKeys.size > 0) {
+      result = result.filter(t => activeKeys.has(t.key));
     }
 
     if (selectedGenres.size > 0) {
@@ -49,7 +74,6 @@ export function useFilters(tracks) {
       result = result.filter(t => t.rating >= minRating);
     }
 
-    // Sort
     result = [...result].sort((a, b) => {
       let av = a[sortCol];
       let bv = b[sortCol];
@@ -63,15 +87,7 @@ export function useFilters(tracks) {
     });
 
     return result;
-  }, [tracks, search, bpmMin, bpmMax, selectedKeys, selectedGenres, minRating, playlistTrackIds, sortCol, sortDir]);
-
-  function toggleKey(key) {
-    setSelectedKeys(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  }
+  }, [tracks, search, bpmMin, bpmMax, activeKeys, selectedGenres, minRating, playlistTrackIds, sortCol, sortDir]);
 
   function toggleGenre(genre) {
     setSelectedGenres(prev => {
@@ -94,20 +110,26 @@ export function useFilters(tracks) {
     setSearch('');
     setBpmMin('');
     setBpmMax('');
-    setSelectedKeys(new Set());
+    setKeyRoot(null);
+    setKeyHarmonics(false);
     setSelectedGenres(new Set());
     setMinRating(0);
     setPlaylistTrackIds(null);
   }
 
-  const hasActiveFilters = search || bpmMin || bpmMax || selectedKeys.size > 0 || selectedGenres.size > 0 || minRating > 0 || playlistTrackIds !== null;
+  const hasActiveFilters =
+    !!search || !!bpmMin || !!bpmMax ||
+    keyRoot !== null || selectedGenres.size > 0 ||
+    minRating > 0 || playlistTrackIds !== null;
 
   return {
     filtered,
     search, setSearch,
     bpmMin, setBpmMin,
     bpmMax, setBpmMax,
-    selectedKeys, toggleKey,
+    keyRoot, setKeyRoot,
+    keyHarmonics, setKeyHarmonics,
+    activeKeys,
     selectedGenres, toggleGenre,
     minRating, setMinRating,
     playlistTrackIds, setPlaylistTrackIds,
