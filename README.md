@@ -48,24 +48,28 @@ The server serves the built client from `client/dist` and the API from `localhos
 
 ## Deploy to Railway
 
-1. Push this repo to GitHub
-2. Create a new Railway project from the repo
-3. Add a volume and mount `rekordbox.xml` to `/app/rekordbox.xml`
-   (or set `XML_PATH` env var pointing to your file)
-4. Railway auto-detects the Dockerfile
-
-## Deploy to Fly.io
+`rekordbox.xml` is gitignored but gets baked into the Docker image at deploy
+time. Railway CLI respects `.gitignore` by default, so pass `--no-gitignore`
+to include it. The `.dockerignore` file still protects `.env`, `node_modules`,
+etc.
 
 ```bash
-fly launch       # follow prompts
-fly deploy
+# First time
+npm install -g @railway/cli
+railway login          # opens browser — sign up at railway.app (free)
+railway init           # creates a new project, links this directory
+
+# Deploy (bakes rekordbox.xml into the image)
+railway up --no-gitignore --detach
+
+# Create a public URL
+railway domain
 ```
 
-Set the `XML_PATH` secret to wherever you upload the XML:
-
+**To redeploy after updating your library:**
 ```bash
-fly secrets set XML_PATH=/data/rekordbox.xml
-fly volumes create rekordbox_data --size 1
+# Export new rekordbox.xml from Rekordbox → overwrite the file → then:
+railway up --no-gitignore --detach
 ```
 
 ## Environment variables
