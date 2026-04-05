@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Disc3, Menu } from 'lucide-react';
+import { Disc3, Menu, ChevronRight } from 'lucide-react';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useFilters } from './hooks/useFilters.js';
 import { PlaylistSidebar } from './components/PlaylistSidebar.jsx';
@@ -9,8 +9,9 @@ import { TrackTable } from './components/TrackTable.jsx';
 export default function App() {
   const { tracks, genres, playlists, loading, error } = useLibrary();
   const filters = useFilters(tracks);
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist]         = useState(null);
+  const [sidebarOpen, setSidebarOpen]                   = useState(false);   // mobile overlay
+  const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);  // desktop collapse
 
   const genreCounts = useMemo(() => {
     const counts = {};
@@ -55,7 +56,10 @@ export default function App() {
         <div className="text-center space-y-2">
           <p className="text-red-400 font-medium">Failed to load library</p>
           <p className="text-gray-400 text-sm">{error}</p>
-          <p className="text-gray-500 text-xs">Is the server running? <code className="bg-white/5 px-1 rounded">cd server && npm start</code></p>
+          <p className="text-gray-500 text-xs">
+            Is the server running?{' '}
+            <code className="bg-white/5 px-1 rounded">cd server && npm start</code>
+          </p>
         </div>
       </div>
     );
@@ -64,28 +68,39 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen bg-[#0d0d12] overflow-hidden">
       {/* Top bar */}
-      <header className="flex items-center gap-2 px-3 py-2.5 bg-[#13131a] border-b border-white/5 shrink-0">
-        {/* Mobile sidebar toggle */}
+      <header className="flex items-center gap-2 px-3 py-2 bg-[#13131a] border-b border-white/5 shrink-0">
+        {/* Mobile: open sidebar drawer */}
         <button
-          className="md:hidden p-1 text-gray-400 hover:text-gray-200 transition-fast"
+          className="md:hidden p-1 text-gray-400 hover:text-gray-200 transition-colors"
           onClick={() => setSidebarOpen(true)}
           aria-label="Open playlists"
         >
-          <Menu size={18} />
+          <Menu size={17} />
         </button>
 
-        <Disc3 size={18} className="text-violet-500 shrink-0" />
+        {/* Desktop: expand sidebar when collapsed */}
+        {desktopSidebarVisible ? null : (
+          <button
+            className="hidden md:flex items-center gap-1 p-1 text-gray-400 hover:text-gray-200 transition-colors"
+            onClick={() => setDesktopSidebarVisible(true)}
+            title="Show playlists"
+          >
+            <ChevronRight size={15} />
+          </button>
+        )}
+
+        <Disc3 size={16} className="text-violet-500 shrink-0" />
         <h1 className="text-sm font-semibold text-gray-100 tracking-wide">Rekordbox XML Browser</h1>
 
         {selectedPlaylist && (
           <span className="text-sm text-gray-500 truncate min-w-0">
-            / <span className="text-violet-400">{selectedPlaylist.name}</span>
+            /{' '}<span className="text-violet-400">{selectedPlaylist.name}</span>
           </span>
         )}
       </header>
 
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar — handles its own mobile/desktop presentation */}
+        {/* Sidebar */}
         <PlaylistSidebar
           playlists={playlists}
           onSelect={handlePlaylistSelect}
@@ -93,6 +108,8 @@ export default function App() {
           onClearPlaylist={handleClearPlaylist}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          desktopCollapsed={!desktopSidebarVisible}
+          onDesktopToggle={() => setDesktopSidebarVisible(false)}
         />
 
         {/* Main content */}
@@ -108,8 +125,8 @@ export default function App() {
             setKeyRoot={filters.setKeyRoot}
             keyHarmonics={filters.keyHarmonics}
             setKeyHarmonics={filters.setKeyHarmonics}
-            selectedGenres={filters.selectedGenres}
-            toggleGenre={filters.toggleGenre}
+            selectedGenre={filters.selectedGenre}
+            setSelectedGenre={filters.setSelectedGenre}
             genres={genres}
             genreCounts={genreCounts}
             minRating={filters.minRating}

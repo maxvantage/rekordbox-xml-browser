@@ -12,24 +12,24 @@ export function getHarmonicKeys(rootKey, includeHarmonics) {
   const prev = num === 1 ? 12 : num - 1;
   const next = num === 12 ? 1 : num + 1;
   return new Set([
-    `${num}${letter}`,   // exact match
-    `${num}${other}`,    // relative major/minor
-    `${prev}${letter}`,  // energy drop
-    `${next}${letter}`,  // energy boost
+    `${num}${letter}`,
+    `${num}${other}`,
+    `${prev}${letter}`,
+    `${next}${letter}`,
   ]);
 }
 
 export function useFilters(tracks) {
-  const [search, setSearch]         = useState('');
-  const [bpmMin, setBpmMin]         = useState('');
-  const [bpmMax, setBpmMax]         = useState('');
-  const [keyRoot, setKeyRoot]       = useState(null);   // e.g. "8A" or null
+  const [search, setSearch]             = useState('');
+  const [bpmMin, setBpmMin]             = useState('');
+  const [bpmMax, setBpmMax]             = useState('');
+  const [keyRoot, setKeyRoot]           = useState(null);
   const [keyHarmonics, setKeyHarmonics] = useState(false);
-  const [selectedGenres, setSelectedGenres] = useState(new Set());
-  const [minRating, setMinRating]   = useState(0);
+  const [selectedGenre, setSelectedGenre] = useState(null); // single string or null
+  const [minRating, setMinRating]       = useState(0);
   const [playlistTrackIds, setPlaylistTrackIds] = useState(null);
-  const [sortCol, setSortCol]       = useState('artist');
-  const [sortDir, setSortDir]       = useState('asc');
+  const [sortCol, setSortCol]           = useState('artist');
+  const [sortDir, setSortDir]           = useState('asc');
 
   const activeKeys = useMemo(
     () => getHarmonicKeys(keyRoot, keyHarmonics),
@@ -66,8 +66,8 @@ export function useFilters(tracks) {
       result = result.filter(t => activeKeys.has(t.key));
     }
 
-    if (selectedGenres.size > 0) {
-      result = result.filter(t => selectedGenres.has(t.genre.trim()));
+    if (selectedGenre) {
+      result = result.filter(t => t.genre.trim() === selectedGenre);
     }
 
     if (minRating > 0) {
@@ -87,15 +87,7 @@ export function useFilters(tracks) {
     });
 
     return result;
-  }, [tracks, search, bpmMin, bpmMax, activeKeys, selectedGenres, minRating, playlistTrackIds, sortCol, sortDir]);
-
-  function toggleGenre(genre) {
-    setSelectedGenres(prev => {
-      const next = new Set(prev);
-      next.has(genre) ? next.delete(genre) : next.add(genre);
-      return next;
-    });
-  }
+  }, [tracks, search, bpmMin, bpmMax, activeKeys, selectedGenre, minRating, playlistTrackIds, sortCol, sortDir]);
 
   function handleSort(col) {
     if (col === sortCol) {
@@ -112,14 +104,14 @@ export function useFilters(tracks) {
     setBpmMax('');
     setKeyRoot(null);
     setKeyHarmonics(false);
-    setSelectedGenres(new Set());
+    setSelectedGenre(null);
     setMinRating(0);
     setPlaylistTrackIds(null);
   }
 
   const hasActiveFilters =
     !!search || !!bpmMin || !!bpmMax ||
-    keyRoot !== null || selectedGenres.size > 0 ||
+    keyRoot !== null || selectedGenre !== null ||
     minRating > 0 || playlistTrackIds !== null;
 
   return {
@@ -130,7 +122,7 @@ export function useFilters(tracks) {
     keyRoot, setKeyRoot,
     keyHarmonics, setKeyHarmonics,
     activeKeys,
-    selectedGenres, toggleGenre,
+    selectedGenre, setSelectedGenre,
     minRating, setMinRating,
     playlistTrackIds, setPlaylistTrackIds,
     sortCol, sortDir, handleSort,
